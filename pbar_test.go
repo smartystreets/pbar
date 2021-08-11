@@ -1,7 +1,9 @@
 package pbar
 
 import (
+	"bytes"
 	"testing"
+	"time"
 
 	"github.com/smartystreets/assertions/should"
 	"github.com/smartystreets/gunit"
@@ -28,14 +30,22 @@ func (this *PBarFixture) TestOptions() {
 	this.So(progressBar.barCompleted, should.Equal, '+')
 }
 
-//func (this *PBarFixture) TestStart() {
-//	progressBar := NewPBar(100, RefreshIntervalMilliseconds(1), BarLength(5))
-//	progressBar.Start()
-//
-//	outBuf := bytes.NewBuffer(make([]byte, 0, 20))
-//	progressBar.output = outBuf
-//	progressBar.Update(100)
-//	time.Sleep(5)
-//	this.So(bytes.Runes(outBuf.Bytes()), should.Resemble, []rune("\x0D[=====] (100/100) 100% "))
-//	progressBar.Finish()
-//}
+func (this *PBarFixture) TestStart() {
+	outBuf := bytes.NewBuffer(make([]byte, 0, 20))
+	progressBar := NewPBar(1000, OutputWriter(outBuf),
+		RefreshIntervalMilliseconds(250), BarLength(5))
+	progressBar.Start()
+
+	progressBar.Update(500)
+	this.So(bytes.Runes(outBuf.Bytes()), should.Resemble, []rune("\x0D[     ] (0/1,000) 0% "))
+
+	time.Sleep(time.Millisecond * 300)
+	this.So(bytes.Runes(outBuf.Bytes()), should.Resemble,
+		[]rune("\x0D[     ] (0/1,000) 0% \x0D[==   ] (500/1,000) 50% "))
+
+	progressBar.Finish()
+
+	//time.Sleep(time.Millisecond * 300)
+	this.So(bytes.Runes(outBuf.Bytes()), should.Resemble,
+		[]rune("\x0D[     ] (0/1,000) 0% \x0D[==   ] (500/1,000) 50% \x0D[=====] (1,000/1,000) 100% "))
+}

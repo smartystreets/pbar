@@ -1,6 +1,9 @@
 package pbar
 
-import "time"
+import (
+	"io"
+	"time"
+)
 
 // Option is a func type received by PBar.
 // Each one allows configuration of the PBar.
@@ -28,4 +31,8 @@ func BarUncompleted(uncompleted rune) Option {
 
 func BarCompleted(completed rune) Option {
 	return func(c *PBar) { c.barCompleted = completed }
+}
+
+func OutputWriter(writer io.Writer) Option {
+	return func(c *PBar) { c.output = writer }
 }
