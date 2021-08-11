@@ -34,13 +34,13 @@ progress := pbar.NewPBar(5000, pbar.BarLength(25), pbar.RefreshIntervalMilliseco
 ```
 
 #### Progress Bar Length
-Set the length of the progress bar.
+Set the length of the progress bar, not counting the summary text. Default 50.
 ```
 pbar.BarLength(25)
 ```
 
 #### Progress Bar Refresh Interval
-Set the refresh interval of the progress bar in milliseconds.
+Set the refresh interval of the progress bar in milliseconds.  Default 500ms.
 ```
 pbar.RefreshIntervalMilliseconds(750)
 ```
