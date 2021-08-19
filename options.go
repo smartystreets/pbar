@@ -33,6 +33,10 @@ func BarCompleted(completed rune) Option {
 	return func(c *PBar) { c.barCompleted = completed }
 }
 
+func BarLabel(label string) Option {
+	return func(c *PBar) { c.barLabel = label }
+}
+
 func OutputWriter(writer io.Writer) Option {
 	return func(c *PBar) { c.output = writer }
 }

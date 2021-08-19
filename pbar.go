@@ -5,11 +5,16 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/pkg/term"
 )
 
 const (
+	TTY = "/dev/tty" // Microsoft Windows is not supported
+
 	BarLengthDefault       = 50
 	RefreshIntervalDefault = 500
 	BarLeftDefault         = '['
@@ -19,11 +24,13 @@ const (
 )
 
 type PBar struct {
-	barVisual    []rune
-	barPercent   string
-	currentCount uint64
-	targetCount  uint64
-	output       io.Writer
+	barVisual      []rune
+	barPercent     string
+	currentCount   uint64
+	TargetCount    uint64
+	output         io.Writer
+	terminal       *term.Term
+	cursorPosition CursorPosition
 
 	refreshIntervalMilliseconds time.Duration
 	barLength                   int
@@ -31,6 +38,12 @@ type PBar struct {
 	barRight                    rune
 	barUncompleted              rune
 	barCompleted                rune
+	barLabel                    string
+}
+
+type CursorPosition struct {
+	row int8
+	col int8
 }
 
 func NewPBar(targetCount uint64, options ...Option) *PBar {
@@ -38,7 +51,7 @@ func NewPBar(targetCount uint64, options ...Option) *PBar {
 }
 
 func (this *PBar) configure(targetCount uint64, options []Option) *PBar {
-	this.targetCount = targetCount
+	this.TargetCount = targetCount
 	this.output = os.Stdout
 
 	this.barLength = BarLengthDefault
@@ -63,23 +76,28 @@ func (this *PBar) Start() {
 }
 
 func (this *PBar) start(waiter *sync.WaitGroup) {
+	this.saveCursorPosition()
 	this.initializeBar()
 	waiter.Done()
 
 	for {
-		if this.currentCount == this.targetCount {
+		if this.currentCount == this.TargetCount {
 			this.updateBar()
+			//this.openTty()
 			this.repaint()
+			//this.closeTty()
 			break
 		}
 		this.updateBar()
+		//this.openTty()
 		this.repaint()
+		//this.closeTty()
 		time.Sleep(time.Millisecond * this.refreshIntervalMilliseconds)
 	}
 }
 
 func (this *PBar) Finish() {
-	this.currentCount = this.targetCount
+	this.currentCount = this.TargetCount
 	this.updateBar()
 	this.repaint()
 }
@@ -96,7 +114,7 @@ func (this *PBar) initializeBar() {
 }
 
 func (this *PBar) updateBar() {
-	percentCompleted := float32(this.currentCount) / float32(this.targetCount)
+	percentCompleted := float32(this.currentCount) / float32(this.TargetCount)
 	completed := int(percentCompleted * float32(this.barLength))
 
 	for i := 1; i <= this.barLength; i++ {
@@ -108,12 +126,47 @@ func (this *PBar) updateBar() {
 	}
 
 	this.barPercent = fmt.Sprintf("(%s/%s) %d%%",
-		comma(this.currentCount), comma(this.targetCount), int(percentCompleted*100.0))
+		comma(this.currentCount), comma(this.TargetCount), int(percentCompleted*100.0))
 }
 
 func (this *PBar) repaint() {
+	this.restoreCursorPosition()
 	// go to beginning of the line and print data
-	_, _ = fmt.Fprintf(this.output, "%c%s %s%c", 13, string(this.barVisual), this.barPercent, 32)
+	_, _ = fmt.Fprintf(this.output, "%c%s%s %s%c", 13, this.barLabel, string(this.barVisual), this.barPercent, 32)
+}
+
+func (this *PBar) openTty() {
+	this.terminal, _ = term.Open(TTY)
+	_ = term.RawMode(this.terminal)
+}
+
+func (this *PBar) closeTty() {
+	_ = this.terminal.Restore()
+}
+
+func (this *PBar) saveCursorPosition() {
+	this.openTty()
+	defer this.closeTty()
+	out := make([]byte, 6)
+	_, _ = this.terminal.Write([]byte{13, 27, '[', '6', 'n'})
+	_, _ = this.terminal.Read(out)
+	split := strings.Split(string(out[2:]), ";")
+	if len(split) > 1 {
+		this.cursorPosition.row = atoi8(split[0])
+		this.cursorPosition.col = atoi8(split[1])
+	}
+}
+
+func (this *PBar) restoreCursorPosition() {
+	if this.cursorPosition.row == 0 && this.cursorPosition.col == 0 {
+		return
+	}
+	fmt.Printf("%c%c%d;%dH", 27, '[', this.cursorPosition.row, this.cursorPosition.col)
+}
+
+func atoi8(val string) int8 {
+	strVal, _ := strconv.Atoi(val)
+	return int8(strVal)
 }
 
 func comma(n uint64) string {

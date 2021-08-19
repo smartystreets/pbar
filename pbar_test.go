@@ -30,7 +30,7 @@ func (this *PBarFixture) TestOptions() {
 	this.So(progressBar.barCompleted, should.Equal, '+')
 }
 
-func (this *PBarFixture) TestStart() {
+func (this *PBarFixture) IgnoreTestStart() {
 	outBuf := bytes.NewBuffer(make([]byte, 0, 20))
 	progressBar := NewPBar(1000, OutputWriter(outBuf),
 		RefreshIntervalMilliseconds(250), BarLength(5))
