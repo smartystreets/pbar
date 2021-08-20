@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"bitbucket.org/smartybryan/pbar"
+	"github.com/smartystreets/pbar"
 )
 
 func main() {

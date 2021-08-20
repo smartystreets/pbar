@@ -1,4 +1,4 @@
-module bitbucket.org/smartybryan/pbar
+module github.com/smartystreets/pbar
 
 go 1.16
 
