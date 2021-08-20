@@ -38,5 +38,8 @@ func BarLabel(label string) Option {
 }
 
 func OutputWriter(writer io.Writer) Option {
-	return func(c *PBar) { c.output = writer }
+	return func(c *PBar) {
+		c.testing = true
+		c.output = writer
+	}
 }

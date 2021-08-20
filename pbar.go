@@ -39,6 +39,8 @@ type PBar struct {
 	barUncompleted              rune
 	barCompleted                rune
 	barLabel                    string
+
+	testing bool
 }
 
 type CursorPosition struct {
@@ -81,17 +83,11 @@ func (this *PBar) start(waiter *sync.WaitGroup) {
 	waiter.Done()
 
 	for {
+		this.updateBar()
+		this.repaint()
 		if this.currentCount == this.TargetCount {
-			this.updateBar()
-			//this.openTty()
-			this.repaint()
-			//this.closeTty()
 			break
 		}
-		this.updateBar()
-		//this.openTty()
-		this.repaint()
-		//this.closeTty()
 		time.Sleep(time.Millisecond * this.refreshIntervalMilliseconds)
 	}
 }
@@ -145,6 +141,10 @@ func (this *PBar) closeTty() {
 }
 
 func (this *PBar) saveCursorPosition() {
+	if this.testing {
+		return
+	}
+
 	this.openTty()
 	defer this.closeTty()
 	out := make([]byte, 6)
@@ -158,6 +158,10 @@ func (this *PBar) saveCursorPosition() {
 }
 
 func (this *PBar) restoreCursorPosition() {
+	if this.testing {
+		return
+	}
+
 	if this.cursorPosition.row == 0 && this.cursorPosition.col == 0 {
 		return
 	}

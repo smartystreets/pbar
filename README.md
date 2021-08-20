@@ -33,6 +33,12 @@ For example:
 progress := pbar.NewPBar(5000, pbar.BarLength(25), pbar.RefreshIntervalMilliseconds(750))
 ```
 
+#### Progress Bar Label
+Set the label that will be output to the left of the bar.
+```
+pbar.BarLabel("Loading index: ")
+```
+
 #### Progress Bar Length
 Set the length of the progress bar, not counting the summary text. Default 50.
 ```

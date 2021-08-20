@@ -19,7 +19,7 @@ type PBarFixture struct {
 
 func (this *PBarFixture) TestOptions() {
 	progressBar := NewPBar(100,
-		RefreshIntervalMilliseconds(750), BarLength(25),
+		BarLabel("Testing"), RefreshIntervalMilliseconds(750), BarLength(25),
 		BarLeft('<'), BarRight('>'), BarUncompleted('-'), BarCompleted('+'))
 
 	this.So(progressBar.refreshIntervalMilliseconds, should.Equal, 750)
@@ -30,13 +30,14 @@ func (this *PBarFixture) TestOptions() {
 	this.So(progressBar.barCompleted, should.Equal, '+')
 }
 
-func (this *PBarFixture) IgnoreTestStart() {
+func (this *PBarFixture) TestStart() {
 	outBuf := bytes.NewBuffer(make([]byte, 0, 20))
 	progressBar := NewPBar(1000, OutputWriter(outBuf),
 		RefreshIntervalMilliseconds(250), BarLength(5))
 	progressBar.Start()
 
 	progressBar.Update(500)
+	time.Sleep(time.Millisecond * 100)
 	this.So(bytes.Runes(outBuf.Bytes()), should.Resemble, []rune("\x0D[     ] (0/1,000) 0% "))
 
 	time.Sleep(time.Millisecond * 300)
