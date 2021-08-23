@@ -1,6 +1,8 @@
 package pbar
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -102,13 +104,6 @@ func (this *PBar) Update(current uint64) {
 	this.currentCount = current
 }
 
-func (this *PBar) initializeBar() {
-	this.barVisual = make([]rune, this.barLength+2) // plus beginning and end markers
-	this.barVisual[0] = this.barLeft
-	this.barVisual[this.barLength+1] = this.barRight
-	this.updateBar()
-}
-
 func (this *PBar) updateBar() {
 	percentCompleted := float32(this.currentCount) / float32(this.TargetCount)
 	completed := int(percentCompleted * float32(this.barLength))
@@ -166,6 +161,47 @@ func (this *PBar) restoreCursorPosition() {
 		return
 	}
 	fmt.Printf("%c%c%d;%dH", 27, '[', this.cursorPosition.row, this.cursorPosition.col)
+}
+
+// CountFileLines count newline characters in a file
+func CountFileLines(path string) (count int, err error) {
+	const lineBreak = '\n'
+
+	file, err := os.Open(path)
+	if err != nil {
+		return 0, err
+	}
+
+	buf := make([]byte, bufio.MaxScanTokenSize)
+
+	for {
+		bufferSize, err := file.Read(buf)
+		if err != nil && err != io.EOF {
+			return 0, err
+		}
+
+		var buffPosition int
+		for {
+			i := bytes.IndexByte(buf[buffPosition:], lineBreak)
+			if i == -1 || bufferSize == buffPosition {
+				break
+			}
+			buffPosition += i + 1
+			count++
+		}
+		if err == io.EOF {
+			break
+		}
+	}
+
+	return count, nil
+}
+
+func (this *PBar) initializeBar() {
+	this.barVisual = make([]rune, this.barLength+2) // plus beginning and end markers
+	this.barVisual[0] = this.barLeft
+	this.barVisual[this.barLength+1] = this.barRight
+	this.updateBar()
 }
 
 func atoi8(val string) int8 {

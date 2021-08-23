@@ -2,6 +2,7 @@ package pbar
 
 import (
 	"bytes"
+	"os"
 	"testing"
 	"time"
 
@@ -49,4 +50,16 @@ func (this *PBarFixture) TestStart() {
 	//time.Sleep(time.Millisecond * 300)
 	this.So(bytes.Runes(outBuf.Bytes()), should.Resemble,
 		[]rune("\x0D[     ] (0/1,000) 0% \x0D[==   ] (500/1,000) 50% \x0D[=====] (1,000/1,000) 100% "))
+}
+
+func (this *PBarFixture) TestCountFileLines() {
+	tempFile := "/tmp/tempfille"
+	fileContents := []byte("Line1\nLine2\nLine3\n")
+	err := os.WriteFile(tempFile, fileContents, 0777)
+	this.So(err, should.BeNil)
+	defer func() { _ = os.Remove(tempFile) }()
+
+	lineCount, err := CountFileLines(tempFile)
+	this.So(err, should.BeNil)
+	this.So(lineCount, should.Equal, 3)
 }
