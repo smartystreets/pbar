@@ -171,6 +171,7 @@ func CountFileLines(path string) (count int, err error) {
 	if err != nil {
 		return 0, err
 	}
+	defer func(){ _ = file.Close() }()
 
 	buf := make([]byte, bufio.MaxScanTokenSize)
 
