@@ -9,7 +9,8 @@ import (
 
 func main() {
 	fmt.Println()
-
+	time.Sleep(time.Millisecond * 250) // wait for the println to finish before starting the progressbar
+	
 	// get a new progress bar with all possible options
 	progress := pbar.NewPBar(8000,
 		pbar.BarLabel("File 1: "), pbar.RefreshIntervalMilliseconds(750), pbar.BarLength(25),

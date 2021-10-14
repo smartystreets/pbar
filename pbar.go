@@ -96,6 +96,7 @@ func (this *PBar) start(waiter *sync.WaitGroup) {
 
 func (this *PBar) Finish() {
 	this.currentCount = this.TargetCount
+	time.Sleep(time.Millisecond * this.refreshIntervalMilliseconds)
 	this.updateBar()
 	this.repaint()
 }

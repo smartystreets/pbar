@@ -49,7 +49,7 @@ func (this *PBarFixture) TestStart() {
 
 	//time.Sleep(time.Millisecond * 300)
 	this.So(bytes.Runes(outBuf.Bytes()), should.Resemble,
-		[]rune("\x0D[     ] (0/1,000) 0% \x0D[==   ] (500/1,000) 50% \x0D[=====] (1,000/1,000) 100% "))
+		[]rune("\x0D[     ] (0/1,000) 0% \x0D[==   ] (500/1,000) 50% \x0D[=====] (1,000/1,000) 100% \x0D[=====] (1,000/1,000) 100% "))
 }
 
 func (this *PBarFixture) TestCountFileLines() {
