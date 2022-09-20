@@ -33,6 +33,7 @@ type PBar struct {
 	output         io.Writer
 	terminal       *term.Term
 	cursorPosition CursorPosition
+	mutex          sync.Mutex
 
 	refreshIntervalMilliseconds time.Duration
 	barLength                   int
@@ -54,7 +55,11 @@ func NewPBar(targetCount uint64, options ...Option) *PBar {
 	return new(PBar).configure(targetCount, options)
 }
 
+// [locks mutex]
 func (this *PBar) configure(targetCount uint64, options []Option) *PBar {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
 	this.TargetCount = targetCount
 	this.output = os.Stdout
 
@@ -79,6 +84,7 @@ func (this *PBar) Start() {
 	waiter.Wait()
 }
 
+// [locks mutex]
 func (this *PBar) start(waiter *sync.WaitGroup) {
 	this.saveCursorPosition()
 	this.initializeBar()
@@ -87,25 +93,40 @@ func (this *PBar) start(waiter *sync.WaitGroup) {
 	for {
 		this.updateBar()
 		this.repaint()
-		if this.currentCount == this.TargetCount {
+		this.mutex.Lock()
+		done := this.currentCount == this.TargetCount
+		this.mutex.Unlock()
+
+		if done {
 			break
 		}
 		time.Sleep(time.Millisecond * this.refreshIntervalMilliseconds)
 	}
 }
 
+// [locks mutex]
 func (this *PBar) Finish() {
+	this.mutex.Lock()
 	this.currentCount = this.TargetCount
+	this.mutex.Unlock()
 	time.Sleep(time.Millisecond * this.refreshIntervalMilliseconds)
 	this.updateBar()
 	this.repaint()
 }
 
+// [locks mutex]
 func (this *PBar) Update(current uint64) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
 	this.currentCount = current
 }
 
+// [locks mutex]
 func (this *PBar) updateBar() {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
 	percentCompleted := float32(this.currentCount) / float32(this.TargetCount)
 	completed := int(percentCompleted * float32(this.barLength))
 
@@ -121,21 +142,31 @@ func (this *PBar) updateBar() {
 		comma(this.currentCount), comma(this.TargetCount), int(percentCompleted*100.0))
 }
 
+// [locks mutex]
 func (this *PBar) repaint() {
 	this.restoreCursorPosition()
+	this.mutex.Lock()
 	// go to beginning of the line and print data
 	_, _ = fmt.Fprintf(this.output, "%c%s%s %s%c", 13, this.barLabel, string(this.barVisual), this.barPercent, 32)
+	this.mutex.Unlock()
 }
 
+// [locks mutex]
 func (this *PBar) openTty() {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
 	this.terminal, _ = term.Open(TTY)
 	_ = term.RawMode(this.terminal)
 }
 
+// [locks mutex]
 func (this *PBar) closeTty() {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
 	_ = this.terminal.Restore()
 }
 
+// [locks mutex]
 func (this *PBar) saveCursorPosition() {
 	if this.testing {
 		return
@@ -143,6 +174,10 @@ func (this *PBar) saveCursorPosition() {
 
 	this.openTty()
 	defer this.closeTty()
+
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
 	out := make([]byte, 6)
 	_, _ = this.terminal.Write([]byte{13, 27, '[', '6', 'n'})
 	_, _ = this.terminal.Read(out)
@@ -153,10 +188,14 @@ func (this *PBar) saveCursorPosition() {
 	}
 }
 
+// [locks mutex]
 func (this *PBar) restoreCursorPosition() {
 	if this.testing {
 		return
 	}
+
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
 
 	if this.cursorPosition.row == 0 && this.cursorPosition.col == 0 {
 		return
@@ -172,7 +211,7 @@ func CountFileLines(path string) (count int, err error) {
 	if err != nil {
 		return 0, err
 	}
-	defer func(){ _ = file.Close() }()
+	defer func() { _ = file.Close() }()
 
 	buf := make([]byte, bufio.MaxScanTokenSize)
 
@@ -199,10 +238,14 @@ func CountFileLines(path string) (count int, err error) {
 	return count, nil
 }
 
+// [locks mutex]
 func (this *PBar) initializeBar() {
+	this.mutex.Lock()
 	this.barVisual = make([]rune, this.barLength+2) // plus beginning and end markers
 	this.barVisual[0] = this.barLeft
 	this.barVisual[this.barLength+1] = this.barRight
+	this.mutex.Unlock()
+
 	this.updateBar()
 }
 

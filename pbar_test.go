@@ -37,18 +37,25 @@ func (this *PBarFixture) TestStart() {
 		RefreshIntervalMilliseconds(250), BarLength(5))
 	progressBar.Start()
 
+	//safe read require to avoid race condition with refresh
+	safeRead := func() []rune {
+		progressBar.mutex.Lock()
+		defer progressBar.mutex.Unlock()
+		return bytes.Runes(outBuf.Bytes())
+	}
+
 	progressBar.Update(500)
 	time.Sleep(time.Millisecond * 100)
-	this.So(bytes.Runes(outBuf.Bytes()), should.Resemble, []rune("\x0D[     ] (0/1,000) 0% "))
+	this.So(safeRead(), should.Resemble, []rune("\x0D[     ] (0/1,000) 0% "))
 
 	time.Sleep(time.Millisecond * 300)
-	this.So(bytes.Runes(outBuf.Bytes()), should.Resemble,
+	this.So(safeRead(), should.Resemble,
 		[]rune("\x0D[     ] (0/1,000) 0% \x0D[==   ] (500/1,000) 50% "))
 
 	progressBar.Finish()
 
 	//time.Sleep(time.Millisecond * 300)
-	this.So(bytes.Runes(outBuf.Bytes()), should.Resemble,
+	this.So(safeRead(), should.Resemble,
 		[]rune("\x0D[     ] (0/1,000) 0% \x0D[==   ] (500/1,000) 50% \x0D[=====] (1,000/1,000) 100% \x0D[=====] (1,000/1,000) 100% "))
 }
 
