@@ -23,7 +23,7 @@ func (this *PBarFixture) TestOptions() {
 		BarLabel("Testing"), RefreshIntervalMilliseconds(750), BarLength(25),
 		BarLeft('<'), BarRight('>'), BarUncompleted('-'), BarCompleted('+'))
 
-	this.So(progressBar.refreshIntervalMilliseconds, should.Equal, 750)
+	this.So(progressBar.refreshInterval, should.Equal, 750*time.Millisecond)
 	this.So(progressBar.barLength, should.Equal, 25)
 	this.So(progressBar.barLeft, should.Equal, '<')
 	this.So(progressBar.barRight, should.Equal, '>')

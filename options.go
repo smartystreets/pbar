@@ -10,7 +10,7 @@ import (
 type Option func(*PBar)
 
 func RefreshIntervalMilliseconds(interval int) Option {
-	return func(c *PBar) { c.refreshIntervalMilliseconds = time.Duration(interval) }
+	return func(c *PBar) { c.refreshInterval = time.Duration(interval) * time.Millisecond }
 }
 
 func BarLength(length int) Option {

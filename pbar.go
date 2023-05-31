@@ -18,7 +18,7 @@ const (
 	TTY = "/dev/tty" // Microsoft Windows is not supported
 
 	BarLengthDefault       = 50
-	RefreshIntervalDefault = 500
+	RefreshIntervalDefault = 500 * time.Millisecond
 	BarLeftDefault         = '['
 	BarRightDefault        = ']'
 	BarUnCompletedDefault  = ' '
@@ -35,13 +35,13 @@ type PBar struct {
 	cursorPosition CursorPosition
 	mutex          sync.Mutex
 
-	refreshIntervalMilliseconds time.Duration
-	barLength                   int
-	barLeft                     rune
-	barRight                    rune
-	barUncompleted              rune
-	barCompleted                rune
-	barLabel                    string
+	refreshInterval time.Duration
+	barLength       int
+	barLeft         rune
+	barRight        rune
+	barUncompleted  rune
+	barCompleted    rune
+	barLabel        string
 
 	testing bool
 }
@@ -64,7 +64,7 @@ func (this *PBar) configure(targetCount uint64, options []Option) *PBar {
 	this.output = os.Stdout
 
 	this.barLength = BarLengthDefault
-	this.refreshIntervalMilliseconds = RefreshIntervalDefault
+	this.refreshInterval = RefreshIntervalDefault
 	this.barLeft = BarLeftDefault
 	this.barRight = BarRightDefault
 	this.barUncompleted = BarUnCompletedDefault
@@ -100,7 +100,7 @@ func (this *PBar) start(waiter *sync.WaitGroup) {
 		if done {
 			break
 		}
-		time.Sleep(time.Millisecond * this.refreshIntervalMilliseconds)
+		time.Sleep(this.refreshInterval)
 	}
 }
 
@@ -109,7 +109,7 @@ func (this *PBar) Finish() {
 	this.mutex.Lock()
 	this.currentCount = this.TargetCount
 	this.mutex.Unlock()
-	time.Sleep(time.Millisecond * this.refreshIntervalMilliseconds)
+	time.Sleep(this.refreshInterval)
 	this.updateBar()
 	this.repaint()
 }
@@ -153,9 +153,15 @@ func (this *PBar) repaint() {
 
 // [locks mutex]
 func (this *PBar) openTty() {
+	var err error
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
-	this.terminal, _ = term.Open(TTY)
+	this.terminal, err = term.Open(TTY)
+	if err != nil {
+		this.testing = true
+		this.refreshInterval = time.Second * 5
+		return
+	}
 	_ = term.RawMode(this.terminal)
 }
 
