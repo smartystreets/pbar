@@ -70,3 +70,33 @@ func (this *PBarFixture) TestCountFileLines() {
 	this.So(err, should.BeNil)
 	this.So(lineCount, should.Equal, 3)
 }
+
+func (this *PBarFixture) TestNoTerminal() {
+	outBuf := bytes.NewBuffer(make([]byte, 0, 20))
+	progressBar := NewPBar(1000,
+		RefreshIntervalMilliseconds(250), BarLength(5))
+	progressBar.tty = "FALSE" // This is simulating non-interactive terminal
+	progressBar.output = outBuf
+	progressBar.Start()
+
+	//safe read require to avoid race condition with refresh
+	safeRead := func() string {
+		progressBar.mutex.Lock()
+		defer progressBar.mutex.Unlock()
+		return string(outBuf.Bytes())
+	}
+
+	progressBar.Update(500)
+	time.Sleep(time.Second * 1)
+	this.So(safeRead(), should.Resemble, "\x0D[     ] (0/1,000) 0% ")
+
+	time.Sleep(time.Second * 5)
+	this.So(safeRead(), should.Resemble,
+		"\x0D[     ] (0/1,000) 0% \x0D[==   ] (500/1,000) 50% ")
+
+	progressBar.Finish()
+
+	time.Sleep(time.Second * 5)
+	this.So(safeRead(), should.Resemble,
+		"\x0D[     ] (0/1,000) 0% \x0D[==   ] (500/1,000) 50% \x0D[=====] (1,000/1,000) 100% \x0D[=====] (1,000/1,000) 100% ")
+}

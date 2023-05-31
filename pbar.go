@@ -44,6 +44,7 @@ type PBar struct {
 	barLabel        string
 
 	testing bool
+	tty     string
 }
 
 type CursorPosition struct {
@@ -69,6 +70,7 @@ func (this *PBar) configure(targetCount uint64, options []Option) *PBar {
 	this.barRight = BarRightDefault
 	this.barUncompleted = BarUnCompletedDefault
 	this.barCompleted = BarCompletedDefault
+	this.tty = TTY
 
 	for _, configure := range options {
 		configure(this)
@@ -152,17 +154,18 @@ func (this *PBar) repaint() {
 }
 
 // [locks mutex]
-func (this *PBar) openTty() {
-	var err error
+func (this *PBar) openTty() (err error) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
-	this.terminal, err = term.Open(TTY)
+	this.terminal, err = term.Open(this.tty)
 	if err != nil {
 		this.testing = true
 		this.refreshInterval = time.Second * 5
 		return
 	}
 	_ = term.RawMode(this.terminal)
+
+	return
 }
 
 // [locks mutex]
@@ -178,7 +181,9 @@ func (this *PBar) saveCursorPosition() {
 		return
 	}
 
-	this.openTty()
+	if this.openTty() != nil {
+		return
+	}
 	defer this.closeTty()
 
 	this.mutex.Lock()
