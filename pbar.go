@@ -159,8 +159,8 @@ func (this *PBar) openTty() (err error) {
 	defer this.mutex.Unlock()
 	this.terminal, err = term.Open(this.tty)
 	if err != nil {
-		this.testing = true
-		this.refreshInterval = time.Second * 5
+		this.testing = true // prevent attempts to save and restore cursor position
+		this.output = io.Discard
 		return
 	}
 	_ = term.RawMode(this.terminal)

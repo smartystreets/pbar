@@ -33,6 +33,8 @@ func (this *PBarFixture) TestOptions() {
 
 func (this *PBarFixture) TestStart() {
 	outBuf := bytes.NewBuffer(make([]byte, 0, 20))
+	// Setting the output writer allows us to send all output to a buffer which allows us to test
+	// that progressBar is creating output as expected.
 	progressBar := NewPBar(1000, OutputWriter(outBuf),
 		RefreshIntervalMilliseconds(250), BarLength(5))
 	progressBar.Start()
@@ -72,31 +74,21 @@ func (this *PBarFixture) TestCountFileLines() {
 }
 
 func (this *PBarFixture) TestNoTerminal() {
-	outBuf := bytes.NewBuffer(make([]byte, 0, 20))
 	progressBar := NewPBar(1000,
 		RefreshIntervalMilliseconds(250), BarLength(5))
-	progressBar.tty = "FALSE" // This is simulating non-interactive terminal
-	progressBar.output = outBuf
+	// Setting tty to a value other than the default (/dev/tty) will cause the tty open to fail,
+	// simulating what occurs when a process using pbar is run in the background with no tty available like
+	// when run with cron. In this case, all output is sent to io.Discard.
+	//
+	// Because no output is generated, this test demonstrates that a failure to
+	// open the tty does not affect the calling program (like this test) from operating normally.
+	progressBar.tty = "FALSE"
 	progressBar.Start()
-
-	//safe read require to avoid race condition with refresh
-	safeRead := func() string {
-		progressBar.mutex.Lock()
-		defer progressBar.mutex.Unlock()
-		return string(outBuf.Bytes())
-	}
-
+	progressBar.Update(250)
+	time.Sleep(time.Millisecond * 250)
 	progressBar.Update(500)
-	time.Sleep(time.Second * 1)
-	this.So(safeRead(), should.Resemble, "\x0D[     ] (0/1,000) 0% ")
-
-	time.Sleep(time.Second * 5)
-	this.So(safeRead(), should.Resemble,
-		"\x0D[     ] (0/1,000) 0% \x0D[==   ] (500/1,000) 50% ")
-
+	time.Sleep(time.Millisecond * 250)
+	progressBar.Update(750)
 	progressBar.Finish()
-
-	time.Sleep(time.Second * 5)
-	this.So(safeRead(), should.Resemble,
-		"\x0D[     ] (0/1,000) 0% \x0D[==   ] (500/1,000) 50% \x0D[=====] (1,000/1,000) 100% \x0D[=====] (1,000/1,000) 100% ")
+	this.So(progressBar.currentCount, should.Equal, progressBar.TargetCount)
 }
