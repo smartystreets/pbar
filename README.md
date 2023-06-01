@@ -42,7 +42,7 @@ pbar.BarLabel("Loading index: ")
 ```
 
 #### Progress Bar Length
-Set the length of the progress bar, not counting the summary text. Default 50.
+Set the character length of the actual progress bar (not counting the summary text). Default 50.
 ```
 pbar.BarLength(25)
 ```
